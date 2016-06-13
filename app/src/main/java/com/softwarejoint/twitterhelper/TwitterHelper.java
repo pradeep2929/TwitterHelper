@@ -1,6 +1,7 @@
 package com.softwarejoint.twitterhelper;
 
 import twitter4j.Twitter;
+import twitter4j.TwitterException;
 import twitter4j.TwitterFactory;
 import twitter4j.auth.AccessToken;
 import twitter4j.auth.RequestToken;
@@ -13,7 +14,7 @@ import android.graphics.Bitmap;
 import android.net.Uri;
 import android.util.Log;
 
-public class TwitterHelper implements TwitterHelperCallback {
+public class TwitterHelper {
 
 	/**
 	 * Register your here app https://dev.twitter.com/apps/new and get your
@@ -50,7 +51,7 @@ public class TwitterHelper implements TwitterHelperCallback {
         twitterLoginCallback = callback;
 
 		if (isTwitterLoggedIn()) twitterLoginCallback.onLoginSuccess();
-        else new TwitterRequestTokenAsyncTask(this).execute();
+        else new RequestTokenAsyncTask(this).execute();
 	}
 
 	public void postStatus(final String tweetMessage, final Bitmap tweetBitmapImage,
@@ -91,12 +92,10 @@ public class TwitterHelper implements TwitterHelperCallback {
 		return mSharedPreferences.getBoolean(Constants.PREF_KEY_TWITTER_LOGIN, false);
 	}
 
-    @Override
     public String getCallBackScheme() {
         return CALLBACK_SCHEME;
     }
 
-    @Override
     public String getCallBackUrl() {
         return CALLBACK_URL;
     }
@@ -105,42 +104,41 @@ public class TwitterHelper implements TwitterHelperCallback {
         ConfigurationBuilder builder = new ConfigurationBuilder();
         builder.setOAuthConsumerKey(CONSUMER_KEY);
         builder.setOAuthConsumerSecret(CONSUMER_SECRET);
+        builder.setDebugEnabled(true);
         Configuration configuration = builder.build();
         return new TwitterFactory(configuration);
     }
 
     public Twitter getTwitterAuthenticatedInstance() {
+        TwitterFactory factory = getTwitterFactory();
         String access_token = mSharedPreferences.getString(Constants.PREF_KEY_OAUTH_TOKEN, "");
         String access_token_secret = mSharedPreferences.getString(Constants.PREF_KEY_OAUTH_SECRET, "");
         AccessToken accessToken = new AccessToken(access_token, access_token_secret);
-        return getTwitterFactory().getInstance(accessToken);
+        return factory.getInstance(accessToken);
     }
 
-    @Override
     public Twitter getTwitterInstance() {
         if(twitter == null){
-            twitter = getTwitterFactory().getInstance();
+            TwitterFactory factory = getTwitterFactory();
+            twitter = factory.getInstance();
         }
 
         return twitter;
     }
 
-    @Override
-    public String getRequestToken() {
-        return requestToken.getToken();
+    public RequestToken getRequestToken() {
+        return requestToken;
     }
 
-    @Override
     public void onGotRequestToken(RequestToken requestToken) {
         this.requestToken = requestToken;
-        Uri uri = Uri.parse(requestToken.getAuthenticationURL());
         if(twitterLoginDialog == null) {
-            twitterLoginDialog = new TwitterLoginDialog(mContext, uri, this);
+            String authenticationURL = requestToken.getAuthenticationURL();
+            twitterLoginDialog = new TwitterLoginDialog(mContext, authenticationURL, this);
         }
         twitterLoginDialog.show();
     }
 
-    @Override
     public void onGotAccessToken(AccessToken accessToken) {
 
         Log.i("Twitter OAuth Token", "> " + accessToken.getToken());
@@ -156,18 +154,12 @@ public class TwitterHelper implements TwitterHelperCallback {
         if (twitterLoginCallback != null) twitterLoginCallback.onLoginSuccess();
     }
 
-    @Override
-    public void onLoginUriFailed(Uri uri) {
-        String callBackUrl = getCallBackUrl();
-        if(uri == null || !uri.toString().startsWith(callBackUrl)) return;
-
-        Log.i("retrieveAndSaveOauth", "Callback received : " + uri);
-        Log.i("retrieveAndSaveOauth", "Retrieving Access Token");
-        RetrieveAccessTokenTask task = new RetrieveAccessTokenTask(uri, this);
-        task.execute();
+    public void onGotOAuthVerifier(String oAuthVerifier) {
+        Log.i("retrieveAndSaveOauth", "oAuthVerifier received : " + oAuthVerifier);
+        dismissLoginDialog();
+        new RetrieveAccessTokenTask(oAuthVerifier, this).execute();
     }
 
-    @Override
     public void onError() {
         dismissLoginDialog();
         if(twitterLoginCallback != null){

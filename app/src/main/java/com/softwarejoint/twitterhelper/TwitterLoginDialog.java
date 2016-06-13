@@ -13,14 +13,14 @@ import android.webkit.WebViewClient;
 class TwitterLoginDialog extends Dialog implements OnCancelListener {
 
 
-    private TwitterHelperCallback twitterHelperCallback;
+    private TwitterHelper twitterHelper;
 
-    public TwitterLoginDialog(Context context, Uri uri, TwitterHelperCallback callback) {
+    public TwitterLoginDialog(Context context, String url, TwitterHelper twitterHelper) {
         super(context, style.Theme_DeviceDefault_Dialog_NoActionBar_MinWidth);
 
-        this.twitterHelperCallback = callback;
+        this.twitterHelper = twitterHelper;
 
-        setContentView(getWebView(context, uri.toString()));
+        setContentView(getWebView(context, url));
         setCancelable(true);
         setCanceledOnTouchOutside(true);
         setOnCancelListener(this);
@@ -28,30 +28,27 @@ class TwitterLoginDialog extends Dialog implements OnCancelListener {
 
     @Override
     public void onCancel(DialogInterface dialog) {
-        twitterHelperCallback.onError();
+        twitterHelper.onError();
     }
 
     private WebView getWebView(Context mContext, String url) {
 		WebView mWebView = new WebView(mContext);
-		// Let's display the progress in the activity title bar, like the
-		// browser app does.
-		// mActivity.getWindow().requestFeature(Window.FEATURE_PROGRESS);
-		mWebView.getSettings().setJavaScriptEnabled(true);
-
-		mWebView.setWebViewClient(new WebViewClient() {
-
-            @Override
-            public void onReceivedError(WebView view, int errorCode,
-                                        String description, String failingUrl) {
-                Uri uri = Uri.parse(failingUrl);
-                String scheme = twitterHelperCallback.getCallBackScheme();
-                if (scheme.equals(uri.getScheme())) twitterHelperCallback.onLoginUriFailed(uri);
-                else twitterHelperCallback.onError();
-            }
-        });
-
-		mWebView.loadUrl(url);
+        mWebView.setWebViewClient(new MyWebViewClient());
+        mWebView.loadUrl(url);
 		return mWebView;
-
 	}
+
+    class MyWebViewClient extends WebViewClient{
+        @Override
+        public boolean shouldOverrideUrlLoading(WebView view, String url) {
+            Uri uri = Uri.parse(url);
+            if (uri.getScheme().equals(twitterHelper.getCallBackScheme())){
+                String verifier = uri.getQueryParameter(Constants.OAUTH_VERIFIER);
+                twitterHelper.onGotOAuthVerifier(verifier);
+                dismiss();
+                return true;
+            }
+            return false;
+        }
+    }
 }

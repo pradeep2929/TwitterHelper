@@ -16,19 +16,19 @@ class PostTwitterStatusTask extends AsyncTask<Void, Void, twitter4j.Status> {
 
     private TwitterStatusCallback mCallback;
     private TwitterHelper twitterHelper;
-	private String tweetMessage;
-	private Bitmap bitmapImage;
+    private String tweetMessage;
+    private Bitmap bitmapImage;
 
-	public PostTwitterStatusTask(String tweet, Bitmap bitmap, TwitterStatusCallback callback,
+    public PostTwitterStatusTask(String tweet, Bitmap bitmap, TwitterStatusCallback callback,
                                  TwitterHelper twitterHelper) {
-		tweetMessage = tweet;
-		bitmapImage = bitmap;
+        tweetMessage = tweet;
+        bitmapImage = bitmap;
         this.mCallback = callback;
         this.twitterHelper = twitterHelper;
     }
 
-	@Override
-	protected twitter4j.Status doInBackground(Void... params) {
+    @Override
+    protected twitter4j.Status doInBackground(Void... params) {
 
         twitter4j.Status result = null;
 
@@ -36,27 +36,28 @@ class PostTwitterStatusTask extends AsyncTask<Void, Void, twitter4j.Status> {
 
         StatusUpdate mStatusUpdate = new StatusUpdate(tweetMessage);
 
-        if (bitmapImage != null) {
-            ByteArrayOutputStream bao = new ByteArrayOutputStream();
-            if(bitmapImage.compress(Bitmap.CompressFormat.PNG, 0, bao)){
-                byte[] bitmapData = bao.toByteArray();
-                ByteArrayInputStream bs = new ByteArrayInputStream(bitmapData);
-                mStatusUpdate.setMedia("Photo", bs);
-            }
-        }
+        try {
 
-		try {
+            if (bitmapImage != null) {
+                ByteArrayOutputStream bao = new ByteArrayOutputStream();
+                if (bitmapImage.compress(Bitmap.CompressFormat.PNG, 0, bao)) {
+                    byte[] bitmapData = bao.toByteArray();
+                    ByteArrayInputStream bs = new ByteArrayInputStream(bitmapData);
+                    mStatusUpdate.setMedia("Photo", bs);
+                }
+            }
+
             result = twitter.updateStatus(mStatusUpdate);
-		} catch (Exception e) {
+        } catch (Exception e) {
             Log.e(TAG, "doInBackground", e);
         }
 
-		return result;
-	}
+        return result;
+    }
 
     @Override
-	protected void onPostExecute(twitter4j.Status status) {
-		if (status != null) mCallback.onTweetSuccess(status);
-		else mCallback.onTweetFailed();
-	}
+    protected void onPostExecute(twitter4j.Status status) {
+        if (status != null) mCallback.onTweetSuccess(status);
+        else mCallback.onTweetFailed();
+    }
 }

@@ -9,5 +9,5 @@ public class Constants {
 	protected static final String PREF_KEY_TWITTER_LOGIN = "isTwitterLoggedIn";
 
 	// Twitter oauth urls
-	protected static final String URL_TWITTER_OAUTH_VERIFIER = "oauth_verifier";
+	protected static final String OAUTH_VERIFIER = "oauth_verifier";
 }

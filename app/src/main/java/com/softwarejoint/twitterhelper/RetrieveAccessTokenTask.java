@@ -4,30 +4,29 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.util.Log;
 
+import twitter4j.Twitter;
 import twitter4j.auth.AccessToken;
 
 class RetrieveAccessTokenTask extends AsyncTask<Void, Void, AccessToken> {
 
     private static final String TAG = "RetrieveAccessTokenTask";
 
-    private Uri uri;
+    private String oAuthVerifier;
     private TwitterHelper twitterHelper;
 
-    public RetrieveAccessTokenTask(Uri uri, TwitterHelper twitterHelper) {
-        this.uri = uri;
+    public RetrieveAccessTokenTask(String oAuthVerifier, TwitterHelper twitterHelper) {
+        this.oAuthVerifier = oAuthVerifier;
         this.twitterHelper = twitterHelper;
     }
 
     @Override
     protected AccessToken doInBackground(Void... params) {
 
-        String verifier = uri.getQueryParameter(Constants.URL_TWITTER_OAUTH_VERIFIER);
-
         AccessToken accessToken = null;
 
         try {
-            accessToken = twitterHelper.getTwitterInstance()
-                    .getOAuthAccessToken(twitterHelper.getRequestToken(), verifier);
+            Twitter twitter = twitterHelper.getTwitterInstance();
+            accessToken = twitter.getOAuthAccessToken(twitterHelper.getRequestToken(), oAuthVerifier);
         } catch (Exception e) {
             Log.e(TAG, "RetrieveAccessTokenTask", e);
         }
